@@ -1,3 +1,5 @@
+const { ObjectId } = require("bson");
+const commentHelpers = require("../helpers/commentHelpers");
 const s3Services = require("../services/s3Service"),
   tokenServices = require("../services/tokenServices"),
   postHelpers = require("../helpers/postHelpers"),
@@ -42,24 +44,12 @@ class PostController {
   // like a post- insert likes of users as their _id into likes array inside post collection
   async likePosts(req, res) {
     try {
-      const userData = req.user;
+      const userId = req.user._id;
       const postDetails = await postHelpers.getPost(req.params.id);
-      const updateLikes = await postHelpers.likePost(postDetails, userData._id);
-      let response
-      if (updateLikes) {
-        response = {
-          message: "This post has been liked",
-          res: updateLikes
-        };
-      }else{
-        response = {
-          message: "This post has been disliked",
-          res: updateLikes
-        }
-      }
+      const updateLikes = await postHelpers.likePost(postDetails, userId);
       res.status(200).json(updateLikes);
     } catch (err) {
-      console.log(err.message,"error in controller")
+      console.log(err.message, "error in controller");
       res.status(500).json({ err, message: "error" });
     }
   }
@@ -67,16 +57,37 @@ class PostController {
   //   comment a post
   async commentPost(req, res) {
     try {
-      const userData = req.user;
-      const postDetails = await postHelpers.getPost(req.params.id);
-      const updateComments = await postHelpers.commentPost(
-        postDetails,
-        userData._id,
-        req.body
-      );
-      console.log(updateComments);
-      res.status(200).json(updateComments);
-    } catch (err) {}
+      const userId = req.user._id;
+      const userData = await userHelpers.getUserDetailsHelper(userId);
+      const commentObj = {
+        comment: req.body.comment,
+        authorId: ObjectId(userId),
+        authorName: userData.fullName,
+        authorAvatar: userData.avatar,
+        postId:ObjectId(req.body.postId),
+        likes: [],
+        createdAt: new Date(),
+      };
+      const newComment = await commentHelpers.newComment(commentObj);
+      console.log(`newComment`, newComment);
+      await postHelpers.commentPost(req.body.postId, userId, newComment._id);
+      res.status(200).json(newComment);
+    } catch (err) {
+      console.log(err.message)
+      res.status(500).json(err)
+    }
+  }
+
+  async likeComment(req,res){
+    try{
+     const userId = req.user._id
+     const commentDetails = await commentHelpers.getComment(req.params.id);
+     const updatedComment = await commentHelpers.likeComment(commentDetails,userId)
+      res.status(200).json(updatedComment)
+    }catch(err){
+      console.log(err.message)
+      res.status(500).json(err)
+    }
   }
 
   // update a post

@@ -15,8 +15,8 @@ module.exports = {
       // if (checkUser) return reject({ message: "This email already exists" });
       try {
         userData.password = await bcrypt.hash(userData.password, saltRounds);
-        userData.posts = [];
         userData.friendRequests = [];
+        userData.online = true;
         await db.getDb().collection(collections.USERS).insertOne(userData);
         resolve(userData);
       } catch (error) {
@@ -65,15 +65,12 @@ module.exports = {
           .getDb()
           .collection(collections.USERS)
           .findOne({ _id: ObjectId(userId) }, { projection: { password: 0 } });
-        console.log(`userData`, userData);
         const requestId = userData.friendRequests.map((user) => ObjectId(user));
-        console.log(requestId, "reqId");
         const friendRequests = await db
           .getDb()
           .collection(collections.USERS)
           .find({ _id: { $in: requestId } })
           .toArray();
-        console.log(friendRequests, "friend request");
         userData.requestDetails = friendRequests;
         resolve(userData);
       } catch (err) {
@@ -99,6 +96,27 @@ module.exports = {
           );
         userData.friends = userData.friends.map((id) => id.toString());
         resolve(userData);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  },
+  toggleOnlineHelper: async (toggle, userId) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log(`toggle,userId`, toggle,userId)
+        const wait = await db
+          .getDb()
+          .collection(collections.USERS)
+          .findOneAndUpdate(
+            { _id: ObjectId(userId) },
+            {
+              $set: { online: toggle },
+            },
+            { returnDocument: "after" }
+          );
+          console.log(`wait`, wait)
+        resolve(wait);
       } catch (err) {
         reject(err);
       }
@@ -264,7 +282,7 @@ module.exports = {
   // get user timeline
   getUserTimeline: (userId) => {
     return new Promise(async (resolve, reject) => {
-      console.log(userId);
+      console.log("userId in getUserTimeline", userId);
       try {
         const post = await db
           .getDb()
@@ -272,7 +290,7 @@ module.exports = {
           .aggregate([
             {
               $match: {
-                _id: new ObjectId(userId),
+                _id: ObjectId(userId),
               },
             },
             {
@@ -281,6 +299,48 @@ module.exports = {
                 localField: "_id",
                 foreignField: "userId",
                 as: "userPosts",
+              },
+            },
+            {
+              $unwind: {
+                path: "$userPosts",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $sort: {
+                "userPosts.createdAt": -1,
+              },
+            },
+            {
+              $lookup: {
+                from: "comments",
+                localField: "userPosts.comments",
+                foreignField: "_id",
+                as: "userPosts.comments",
+              },
+            },
+            {
+              $group: {
+                _id: "$_id",
+                docs: {
+                  $first: "$$ROOT",
+                },
+                posts: {
+                  $push: "$userPosts",
+                },
+              },
+            },
+            {
+              $replaceRoot: {
+                newRoot: {
+                  $mergeObjects: [
+                    "$docs",
+                    {
+                      userPosts: "$posts",
+                    },
+                  ],
+                },
               },
             },
             {
@@ -293,9 +353,19 @@ module.exports = {
             },
           ])
           .toArray();
-        console.log(post, "post");
+        // console.log(`post[0].userPosts`, post[0].userPosts[0].userId);
+        // const objPresent = post[0].userPosts.some(
+        //   (obj) => obj.userId?.toString() == userId
+        // );
+        // console.log(`objPresent`, objPresent);
+        // if (!objPresent) {
+        //   post[0].userPosts = [];
+        // }
+        if (!post[0].userPosts[0]?._id) post[0].userPosts = [];
+        console.log(post, "post from getUserTimeline");
         resolve(post[0]);
       } catch (err) {
+        console.log(`err.message`, err.message);
         reject(err.message);
       }
     });

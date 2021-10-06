@@ -32,7 +32,6 @@ const commentValidationRules = () => {
 };
 
 const validate = (req, res, next) => {
-  console.log(req.body,"validation")
   const errors = validationResult(req);
   if (errors.isEmpty()) {
     return next();

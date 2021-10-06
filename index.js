@@ -15,8 +15,10 @@ const express = require("express"),
     cors: {
       origin: "http://localhost:3000",
     },
+    pingTimeout: 180000,
+    pingInterval: 25000,
   }),
-  socketService = require("./src/socket")
+  socketService = require("./src/socket");
 // Application level middlewares
 app.use(
   compression({
@@ -31,19 +33,15 @@ app.use(cors({ credentials: true, origin: process.env.FRONT_END_URL }));
 app.use(cookieParser());
 app.use("/api", userRoutes);
 app.use("/api/admin", adminRoutes);
-
+// io.eio.pingTimeout = 120000;
+// io.eio.pingInterval = 5000;
 io.on("connection", (socket) => {
   console.log("a user is connected", socket.id);
+  let userId = socket.handshake.query.userId;
+  console.log(`io.on userId`, userId);
+  socketService(socket, io, userId);
 
-  socketService(socket)
-
-  // socket.on("join_room",(data)=>{
-  //   socket.join(data);
-  //   console.log(`User with ID: ${socket.id} joined room ${data}`)
-  // })
-  // socket.on("disconnect", () => {
-  //   console.log(`User disconencted`, socket.id);
-  // });
+  console.log("number of clients", io.engine.clientsCount);
 });
 
 server.listen(PORT, () => {

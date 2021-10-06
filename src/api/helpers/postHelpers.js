@@ -136,18 +136,26 @@ module.exports = {
               },
             },
             {
+              $lookup: {
+                from: "comments",
+                localField: "posts.comments",
+                foreignField: "_id",
+                as: "posts.comments",
+              },
+            },
+            {
               $sort: {
                 "posts.createdAt": -1,
               },
             },
           ])
           .toArray();
-
         const result = post.map((post) => {
           return post.posts;
         });
         resolve(result);
       } catch (err) {
+        console.log(`err`, err);
         reject(err.message);
       }
     });
@@ -165,13 +173,14 @@ module.exports = {
             .findOneAndUpdate(
               { _id: ObjectId(post._id) },
               { $push: { likes: userId } },
-              {returnDocument : "after"}
+              { returnDocument: "after" }
               // { returnDocument: "after" },
               // function (err, documents) {
               //   console.log(documents,"document in like")
               // }
             );
           // console.log(`result`, result.value);
+          result.value.type = "LIKE";
           resolve(result.value);
         } else {
           const result = await db
@@ -180,12 +189,13 @@ module.exports = {
             .findOneAndUpdate(
               { _id: ObjectId(post._id) },
               { $pull: { likes: userId } },
-              {returnDocument : "after"}
+              { returnDocument: "after" }
               // { returnDocument: "after" },
               // function (err, documents) {
               //   console.log(documents, "document in dislike");
               // }
             );
+          result.value.type = "DISLIKE";
           // console.log(`result`, result);
           resolve(result.value);
         }
@@ -254,24 +264,33 @@ module.exports = {
   // comment on post
   commentPost: async (post, userId, comment) => {
     return new Promise(async (resolve, reject) => {
-      const commentObj = {
-        ...comment,
-        authorId: userId,
-        likes: [],
-        createdAt: new Date(),
-      };
       try {
-        await db
+        let response = await db
           .getDb()
           .collection(collections.POST)
-          .updateOne(
-            { _id: ObjectId(post._id) },
-            { $push: { comments: commentObj } }
+          .findOneAndUpdate(
+            { _id: ObjectId(post) },
+            { $push: { comments: comment } },
+            { returnDocument: "after" }
           );
-        resolve("Comment added successfully");
+        resolve(response.value);
       } catch (err) {
-        reject(err);
+        console.log(`Error in commentPost helpper`, err.message);
+        reject(err.message);
       }
+
+      // try {
+      //   await db
+      //     .getDb()
+      //     .collection(collections.POST)
+      //     .updateOne(
+      //       { _id: ObjectId(post._id) },
+      //       { $push: { comments: commentObj } }
+      //     );
+      //   resolve("Comment added successfully");
+      // } catch (err) {
+      //   reject(err);
+      // }
     });
   },
 

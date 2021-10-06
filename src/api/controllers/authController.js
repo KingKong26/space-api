@@ -42,7 +42,7 @@ class AuthController {
   // login user
   async userLogin(req, res) {
     try {
-      console.log(req.body,"req.body")
+      console.log(`req.body`, req.body)
       const user = await userHelpers.loginUser(req.body);
       const { accessToken, refreshToken } = tokenService.generateTokens({
         _id: user._id,
@@ -55,6 +55,9 @@ class AuthController {
         maxAge: 1000 * 60 * 60 * 24 * 30,
         httpOnly: true,
       });
+      res.cookie("userId",user._id,{
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+      })
       res.cookie("accessToken", accessToken, {
         maxAge: 1000 * 60 * 60 * 24 * 30,
         httpOnly: true,
@@ -62,6 +65,7 @@ class AuthController {
       // send response
       res.status(200).json("User authentication successful");
     } catch (error) {
+      console.log(`error.message`, error.message)
       res.status(401).send(error.message);
     }
   }
@@ -70,9 +74,7 @@ class AuthController {
 
   async getUserData (req,res){
     try{
-      console.log("User: ",req.user)
       const userData = await userHelpers.getUserDetailsHelper(req.user._id)
-      console.log("User data: ",userData)
       res.status(200).json(userData)
     }catch(err){
       console.log("Error:",err)
@@ -91,7 +93,18 @@ class AuthController {
       res.status(500).json(err)
     }
   }
+  async toggleOnline (req,res){
+    console.log(`req.body`, req.body)
+    try {
+      await userHelpers.toggleOnlineHelper(req.body.toggle,req.user._id)
+      res.status(200).json("Update success!!")
 
+    } catch (err) {
+      console.log("Error:",err)
+      res.status(500).json(err)
+
+    }
+  }
   // sample for testing db connection
   async sample(req, res) {
     try {
