@@ -26,7 +26,6 @@ module.exports = {
           .getDb()
           .collection(collections.COMMENT)
           .findOne({ _id: ObjectId(commentId) });
-        console.log(commentDetails, "Comment details");
         resolve(commentDetails);
       } catch (err) {
         reject(err);
@@ -36,7 +35,6 @@ module.exports = {
 
   likeComment: (comment, userId) => {
     return new Promise(async (resolve, reject) => {
-      console.log(`comment,userId`, comment, userId);
       try {
         if (comment.likes.includes(userId)) {
           let result = await db

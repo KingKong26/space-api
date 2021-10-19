@@ -10,13 +10,6 @@ module.exports = {
         console.log(postContent, "postContent before");
         await db.getDb().collection(collections.POST).insertOne(postContent);
         console.log(postContent, "postContent after");
-        // await db
-        //   .getDb()
-        //   .collection(collections.USERS)
-        //   .updateOne(
-        //     { _id: ObjectId(postContent.userId) },
-        //     { $push: { posts: postContent } }
-        //   );
         resolve(postContent);
       } catch (err) {
         reject(err);
@@ -38,61 +31,6 @@ module.exports = {
       }
     });
   },
-  // user posts
-  // getUserFeeds: (userId) => {
-  //   return new Promise(async (resolve, reject) => {
-  //     console.log(userId, "userId in get feeds");
-  //     try {
-  //       const post = await db
-  //         .getDb()
-  //         .collection(collections.USERS)
-  //         .aggregate([
-  //           {
-  //             $match: {
-  //               _id: ObjectId(userId),
-  //             },
-  //           },
-  //           {
-  //             $lookup: {
-  //               from: "posts",
-  //               localField: "friends",
-  //               foreignField: "userId",
-  //               as: "friendPosts",
-  //             },
-  //           },
-  //           {
-  //             $project: {
-  //               allPosts: {
-  //                 $concatArrays: ["$friendPosts", "$posts"],
-  //               },
-  //             },
-  //           },
-  //           {
-  //             $unwind: {
-  //               path: "$allPosts",
-  //             },
-  //           },
-  //           {
-  //             $sort: {
-  //               "allPosts.createdAt": -1,
-  //             },
-  //           },
-  //           {
-  //             $project: {
-  //               _id: 0,
-  //               allPosts: 1,
-  //             },
-  //           },
-  //         ])
-  //         .toArray();
-  //       const result = post.map((p) => p.allPosts);
-  //       console.log(result, "posts helpwer");
-  //       resolve(result);
-  //     } catch (err) {
-  //       reject(err.message);
-  //     }
-  //   });
-  // },
 
   getUserFeeds: (userId) => {
     return new Promise(async (resolve, reject) => {
@@ -164,7 +102,6 @@ module.exports = {
   // like post
   likePost: async (post, userId) => {
     return new Promise(async (resolve, reject) => {
-      // console.log(post, userId, "post helper");
       try {
         if (!post.likes.includes(userId)) {
           const result = await db
@@ -174,12 +111,7 @@ module.exports = {
               { _id: ObjectId(post._id) },
               { $push: { likes: userId } },
               { returnDocument: "after" }
-              // { returnDocument: "after" },
-              // function (err, documents) {
-              //   console.log(documents,"document in like")
-              // }
             );
-          // console.log(`result`, result.value);
           result.value.type = "LIKE";
           resolve(result.value);
         } else {
@@ -190,70 +122,10 @@ module.exports = {
               { _id: ObjectId(post._id) },
               { $pull: { likes: userId } },
               { returnDocument: "after" }
-              // { returnDocument: "after" },
-              // function (err, documents) {
-              //   console.log(documents, "document in dislike");
-              // }
             );
           result.value.type = "DISLIKE";
-          // console.log(`result`, result);
           resolve(result.value);
         }
-
-        // query for updating user collection
-        // await db
-        //   .getDb()
-        //   .collection(collections.USERS)
-        //   .update(
-        //     {
-        //       "posts._id": post._id,
-        //     },
-        //     [
-        //       {
-        //         $set: {
-        //           posts: {
-        //             $map: {
-        //               input: "$posts",
-        //               as: "p",
-        //               in: {
-        //                 $cond: [
-        //                   {
-        //                     $eq: ["$$p._id", post._id],
-        //                   },
-        //                   {
-        //                     $mergeObjects: [
-        //                       "$$p",
-        //                       {
-        //                         likes: {
-        //                           $cond: [
-        //                             {
-        //                               $in: [userId, "$$p.likes"],
-        //                             },
-        //                             {
-        //                               $filter: {
-        //                                 input: "$$p.likes",
-        //                                 cond: {
-        //                                   $ne: ["$$this", userId],
-        //                                 },
-        //                               },
-        //                             },
-        //                             {
-        //                               $concatArrays: ["$$p.likes", [userId]],
-        //                             },
-        //                           ],
-        //                         },
-        //                       },
-        //                     ],
-        //                   },
-        //                   "$$p",
-        //                 ],
-        //               },
-        //             },
-        //           },
-        //         },
-        //       },
-        //     ]
-        //   );
       } catch (err) {
         console.log(err.message, "message");
         reject(err);
@@ -273,24 +145,11 @@ module.exports = {
             { $push: { comments: comment } },
             { returnDocument: "after" }
           );
-        resolve(response.value);
+        resolve(response.value.userId);
       } catch (err) {
         console.log(`Error in commentPost helpper`, err.message);
         reject(err.message);
       }
-
-      // try {
-      //   await db
-      //     .getDb()
-      //     .collection(collections.POST)
-      //     .updateOne(
-      //       { _id: ObjectId(post._id) },
-      //       { $push: { comments: commentObj } }
-      //     );
-      //   resolve("Comment added successfully");
-      // } catch (err) {
-      //   reject(err);
-      // }
     });
   },
 
@@ -316,7 +175,7 @@ module.exports = {
   deletePostHelper: (postId, userId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        await db
+        const deletedPost = await db
           .getDb()
           .collection(collections.POST)
           .deleteOne({ _id: ObjectId(postId) });
@@ -327,7 +186,8 @@ module.exports = {
             { _id: ObjectId(userId) },
             { $pull: { posts: ObjectId(postId) } }
           );
-        resolve("Post deleted successfully");
+          console.log(deletedPost)
+        resolve(deletedPost);
       } catch (err) {
         reject(err.message);
       }

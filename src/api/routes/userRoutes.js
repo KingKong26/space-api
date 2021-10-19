@@ -25,7 +25,8 @@ const express = require("express"),
  router.post("/register", registerValidationRules(), validate, authController.userRegister); //user onboarding
  router.post("/login", loginValidationRules(), validate, authController.userLogin); //user login
  router.get("/", authMiddleware, authController.getUserData); //user data fetching after jwt validation
- router.get("/profile/:id",userController.getProfileTimeline) //get a friends all posts
+ router.get("/profile/:id",userController.getProfileTimeline) //get a friend's - all posts
+ router.put("/profile",authMiddleware,userController.updateProfile) //update user profile details
  router.put("/online", authMiddleware, authController.toggleOnline); //user update online
 
 //  post  routes 
@@ -62,22 +63,12 @@ router.get("/message/:id",authMiddleware,chatController.getMessage)
 // notification  routes
 router.post("/notify",authMiddleware,notifyControllers.createNotify)
 router.get("/notify",authMiddleware,notifyControllers.getNotify)
+router.patch("/notify",authMiddleware,notifyControllers.readNotify)
 
 // images
-router.get('/images/:key',async(req,res)=>{
-   console.log("hello")
-   let key = req.params.key
-   key = "files/"+key
-   const readStream =  getFileStream(key)
-   readStream.pipe(res)
-   // res.end(readStream)
-})
- 
-
+router.get('/images/:key',postController.getImage)
  
 //  test routes
- router.get("/protected", authMiddleware, userController.protected )
- router.get("/sample", userController.sample);
+router.get("/sample", userController.sample);
  
-
-module.exports = router;
+module.exports = router; 

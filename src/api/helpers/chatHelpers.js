@@ -1,6 +1,7 @@
 const collections = require("../../config/collection"),
   db = require("../../config/dbConnection"),
-  { ObjectId } = require("mongodb");
+  { ObjectId } = require("mongodb"),
+  { activeUserSocketIdMap } = require("../../socket");
 
 module.exports = {
   getConversationsHelper: (userId) => {
@@ -61,12 +62,26 @@ module.exports = {
                 friends: 0,
                 password: 0,
                 friendRequests: 0,
+                age: 0,
+                education: 0,
+                from: 0,
+                phone: 0,
+                work: 0,
+                livesIn: 0,
+                from: 0,
+                livesInCountry: 0,
+                fromCountry: 0,
+                description: 0,
               },
             },
           ])
           .toArray();
-          // console.log(`conversations`, conversations)
-        resolve(conversations);
+        let newConversations = conversations.map((convo) => {
+          return activeUserSocketIdMap.has(convo._id.toString())
+            ? { ...convo, active: true }
+            : { ...convo, active: false };
+        });
+        resolve(newConversations);
       } catch (err) {
         console.log(`err in getConvo`, err);
         reject(err);
@@ -102,7 +117,7 @@ module.exports = {
                 createdAt: msgObj.createdAt,
                 updatedAt: msgObj.updatedAt,
                 text: msg.text,
-                author:sender
+                author: sender,
               },
             },
             { upsert: true, returnDocument: "after" }
@@ -129,7 +144,6 @@ module.exports = {
           .find({ conversation: ObjectId(convoId) })
           .sort({ createdAt: -1 })
           .toArray();
-        console.log(`messages`, messages);
         resolve(messages);
       } catch (error) {
         console.log(`error.message`, error.message);

@@ -1,7 +1,5 @@
 const S3 = require("aws-sdk/clients/s3");
-const fs = require("fs"),
-  util = require("util"),
-  unlinkFile = util.promisify(fs.unlink);
+const fs = require("fs");
 
 const bucketName = process.env.AWS_BUCKET_NAME;
 const region = process.env.AWS_BUCKET_REGION;
@@ -33,15 +31,10 @@ function uploadFile(file) {
     Key: fileKey,
     Bucket: bucketName,
   };
-  // const data = await s3.getObject(downloadParams).promise();
-  // console.log(data.Body, "data.body");
-  // if (data.Body) {
-  //   return data.Body.toString("utf-8");
-  // } else {
-  //   return undefined;
-  // }
   return s3.getObject(downloadParams).createReadStream();
 }
+
+
 
 exports.getFileStream = getFileStream;
 

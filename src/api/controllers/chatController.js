@@ -1,6 +1,4 @@
-const collection = require("../../config/collection"),
-  db = require("../../config/dbConnection"),
-  chatHelpers = require("../helpers/chatHelpers");
+const chatHelpers = require("../helpers/chatHelpers");
 
 class ChatController {
   async getConversations(req, res) {

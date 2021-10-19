@@ -5,6 +5,7 @@ const s3Services = require("../services/s3Service"),
   postHelpers = require("../helpers/postHelpers"),
   userHelpers = require("../helpers/userHelpers"),
   { uploadFile } = require("../services/s3bucket"),
+  {getFileStream} = require("../services/s3"),
   fileUpload = require("../services/fileUpload");
 
 class PostController {
@@ -70,7 +71,8 @@ class PostController {
       };
       const newComment = await commentHelpers.newComment(commentObj);
       console.log(`newComment`, newComment);
-      await postHelpers.commentPost(req.body.postId, userId, newComment._id);
+      let postAuthor = await postHelpers.commentPost(req.body.postId, userId, newComment._id);
+      newComment.postAuthor =postAuthor
       res.status(200).json(newComment);
     } catch (err) {
       console.log(err.message)
@@ -112,7 +114,8 @@ class PostController {
   async deletePost(req, res) {
     try {
       const post = await postHelpers.getPost(req.params.id);
-      if (post.userId === req.user._id) {
+      console.log(`post,req.user._id`, post,req.user._id)
+      if (post.userId.toString() === req.user._id) {
         const deletePost = await postHelpers.deletePostHelper(
           req.params.id,
           req.user._id
@@ -139,6 +142,15 @@ class PostController {
     } catch (err) {
       res.status(500).json(err);
     }
+  }
+
+  async getImage(req,res){
+    console.log("hello")
+   let key = req.params.key
+   key = "files/"+key
+   const readStream =  getFileStream(key)
+   readStream.pipe(res)
+   // res.end(readStream)
   }
 }
 

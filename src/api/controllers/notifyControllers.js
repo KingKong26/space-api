@@ -1,6 +1,4 @@
-const collection = require("../../config/collection"),
-  db = require("../../config/dbConnection"),
-  notifyHelper = require("../helpers/notifyHelpers");
+const notifyHelper = require("../helpers/notifyHelpers");
 
 class NotifyController {
   async createNotify(req, res) {
@@ -18,6 +16,16 @@ class NotifyController {
       console.log(`req.user`, req.user._id);
       const notify = await notifyHelper.getNotifyHelper(req.user._id);
       res.status(200).json(notify);
+    } catch (err) {
+      console.log(`err.message`, err.message);
+      res.status(500).json(err.message);
+    }
+  }
+  async readNotify(req, res) {
+    try {
+      console.log(`req.user`, req.user._id);
+      const notify = await notifyHelper.readNotifyHelper(req.user._id);
+      res.status(200);
     } catch (err) {
       console.log(`err.message`, err.message);
       res.status(500).json(err.message);

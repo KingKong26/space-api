@@ -12,6 +12,15 @@ module.exports = {
           .collection(collections.NOTIFY)
           .insertOne(notifyObj);
         notifyObj._id = newNotify.insertedId;
+        let user = await db
+          .getDb()
+          .collection(collections.USERS)
+          .findOne({ _id: notifyObj.createdBy });
+        notifyObj.user = {
+          _id: user._id,
+          fullName: user.fullName,
+          avatar: user.avatar,
+        };
         resolve(notifyObj);
       } catch (err) {
         console.log(`err`, err);
@@ -60,10 +69,27 @@ module.exports = {
                 "user.avatar": 1,
               },
             },
-          ]).toArray()
+          ])
+          .toArray();
         resolve(notify);
       } catch (err) {
         console.log(`err`, err);
+        reject(err);
+      }
+    });
+  },
+  readNotifyHelper: (userId) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const updateNotify = await db
+          .getDb()
+          .collection(collections.NOTIFY)
+          .update(
+            { recipients: userId, read: false },
+            { $set: { read: true } }
+          );
+        resolve(updateNotify);
+      } catch (err) {
         reject(err);
       }
     });

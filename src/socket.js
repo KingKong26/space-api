@@ -1,18 +1,14 @@
 const userHelpers = require("./api/helpers/userHelpers");
 let userSocketIdMap = new Map();
 let activeUserSocketIdMap = new Map();
-const socket = (socket, io, userId) => {
-  console.log(`userId`, userId);
 
-  socket.on("joinUser", (user) => {
+const socket = (socket, io, userId) => {
+  socket.on("JOIN_USER", (user) => {
     //add client to online users list
     addClientToMap(user._id, socket.id);
-    console.log("joinUser userSocketIdMap: ", userSocketIdMap.entries());
-    console.log(`joinUser size of map: `, userSocketIdMap.size);
-    console.log("joinUser number of clients", io.engine.clientsCount);
   });
 
-  socket.on("ACTIVE",async (user) => {
+  socket.on("ACTIVE", async (user) => {
     //add client to online users list
     addClientToActiveMap(user._id, socket.id);
     let userData = await userHelpers.getDetails(user._id);
@@ -20,58 +16,35 @@ const socket = (socket, io, userId) => {
     if (clientUserIds.length > 0) {
       for (id of clientUserIds) {
         let recipientSocketIds = userSocketIdMap.get(id);
-        console.log(`recipientSocketIds`, recipientSocketIds);
         if (recipientSocketIds) {
           for (let socketId of recipientSocketIds) {
-            console.log(`socketId`, socketId);
             socket.to(socketId).emit("SET_ACTIVE_CLIENT", user);
           }
         }
       }
     }
-    console.log("active userSocketIdMap: ", activeUserSocketIdMap.entries());
-    console.log(`active size of map: `, activeUserSocketIdMap.size);
-    console.log("active number of clients", io.engine.clientsCount);
   });
 
   socket.on("disconnect", () => {
-    console.log(`userId,socket.id`, userId, socket.id);
     removeClientFromMap(userId, socket.id);
     // socket.removeAllListeners();
-    console.log(`disconnected: `, socket.id);
-    console.log(`disconnect userSocketIdMap`, userSocketIdMap.entries());
-    console.log(`disconnect size of map: `, userSocketIdMap.size);
-    console.log("disconnect number of clients", io.engine.clientsCount);
   });
 
-  socket.on("LOGOUT", (id) => {
-    try {
-      console.log(`logout`, id);
-    } catch (error) {
-      console.log(`error.message`, error.message);
-    }
-    console.log(`logout socket`, socket.id);
-    removeClientFromMap(id, socket.id);
+  socket.on("LOGOUT", (_id) => {
+    removeClientFromMap(_id, socket.id);
     socket.emit("callback", "logged out");
     socket.to(`${socket.id}`).emit("resetParams");
-    console.log(`logout userSocketIdMap`, userSocketIdMap.entries());
-    console.log(`logout size of map: `, userSocketIdMap.size);
-    console.log("logout number of clients", io.engine.clientsCount);
+    updateUserFriends({_id:_id,active:false}, socket);
   });
 
   socket.on("LIKE_POST", async (newPost) => {
-    console.log(`newPost`, newPost);
     let userData = await userHelpers.getDetails(newPost.userId); //get user details of the post which got the like
-    console.log(`userData`, userData);
     let clientUserIds = [...userData.friends, userData._id.toString()];
-    console.log(`clientUserIds`, clientUserIds);
     if (clientUserIds.length > 0) {
       for (id of clientUserIds) {
         let recipientSocketIds = userSocketIdMap.get(id);
-        console.log(`recipientSocketIds`, recipientSocketIds);
         if (recipientSocketIds) {
           for (let socketId of recipientSocketIds) {
-            console.log(`socketId`, socketId);
             socket.to(socketId).emit("LIKE_TO_CLIENT", newPost);
           }
         }
@@ -80,15 +53,23 @@ const socket = (socket, io, userId) => {
   });
 
   socket.on("MESSAGE_SENT", async (message) => {
-    console.log(`message`, message);
     let recipientSocketIds = userSocketIdMap.get(message.recipient);
-    console.log(`recipientSocketIds`, recipientSocketIds);
     if (recipientSocketIds) {
       for (let socketId of recipientSocketIds) {
-        console.log(`socketId`, socketId);
         socket.to(socketId).emit("SEND_MESSAGE_TO_CLIENT", message);
       }
     }
+  });
+
+  socket.on("SEND_NOTIFICATION", async (notifyObj) => {
+    notifyObj.recipients.map((recipient) => {
+      let recipientSocketIds = userSocketIdMap.get(recipient);
+      if (recipientSocketIds) {
+        for (let socketId of recipientSocketIds) {
+          socket.to(socketId).emit("SEND_NOTIFY_TO_CLIENT", notifyObj);
+        }
+      }
+    });
   });
 
   socket.on("error", function (err) {
@@ -96,7 +77,22 @@ const socket = (socket, io, userId) => {
   });
 };
 
-module.exports = socket;
+module.exports = { socket, activeUserSocketIdMap };
+
+const updateUserFriends = async(user , socket) => {
+  let userData = await userHelpers.getDetails(user._id);
+  let clientUserIds = [...userData.friends];
+  if (clientUserIds.length > 0) {
+    for (id of clientUserIds) {
+      let recipientSocketIds = userSocketIdMap.get(id);
+      if (recipientSocketIds) {
+        for (let socketId of recipientSocketIds) {
+          socket.to(socketId).emit("UPDATE_ACTIVE", user);
+        }
+      }
+    }
+  }
+};
 
 const addClientToMap = (userId, socketId) => {
   if (!userSocketIdMap.has(userId)) {

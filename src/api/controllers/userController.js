@@ -1,21 +1,10 @@
-const { ResultWithContext } = require("express-validator/src/chain");
-const collections = require("../../config/collection"),
-  db = require("../../config/dbConnection"),
-  userHelpers = require("../helpers/userHelpers"),
-  s3Services = require("../services/s3Service"),
-  tokenServices = require("../services/tokenServices");
-const postHelpers = require("../helpers/postHelpers");
+const userHelpers = require("../helpers/userHelpers"),
+  postHelpers = require("../helpers/postHelpers");
 
 class UserController {
   // SEND_REQUEST
   async sentRequest(req, res) {
     const requesterData = req.user;
-    // request object to be stored in friend request collection
-    // const requestObj = {
-    //   requesterId: requesterData._id,
-    //   createdAt: new Date(),
-    //   status: "Pending",
-    // };
     const receiverDetails = await userHelpers.getUserDetailsHelper(
       req.params.id
     );
@@ -24,9 +13,6 @@ class UserController {
         requesterData._id,
         receiverDetails
       );
-      // const requestedUpdatedData = await userHelpers.getUserDetailsHelper(req.user._id)
-      // console.log(`requestedUpdatedData`, requestedUpdatedData);
-      console.log(`requestResult`, requestResult);
       res.status(200).json(requestResult);
     } catch (err) {
       res.status(500).json(err);
@@ -72,31 +58,27 @@ class UserController {
       );
       res.status(200).json(rejectionResult);
     } catch (err) {
-      console.log(`err in rejectRequest ctr`, err)
+      console.log(`err in rejectRequest ctr`, err);
       res.status(500).json(err.message);
     }
   }
   // UNFRIEND_USER
-  async unfriendUser(req,res){
-    const unfriendId = req.params.id
-    const userId = req.user._id
-    try{
-      const unfriendUser = await userHelpers.unfriendHelper(unfriendId,userId)
-      console.log(`unfriendUser`, unfriendUser)
-      res.status(200).json(unfriendUser)
-    }catch(err){
-      console.log(`err.message`, err.message)
-      res.status(500).json(err.message)
+  async unfriendUser(req, res) {
+    const unfriendId = req.params.id;
+    const userId = req.user._id;
+    try {
+      const unfriendUser = await userHelpers.unfriendHelper(unfriendId, userId);
+      console.log(`unfriendUser`, unfriendUser);
+      res.status(200).json(unfriendUser);
+    } catch (err) {
+      console.log(`err.message`, err.message);
+      res.status(500).json(err.message);
     }
   }
   // GET_USER_FEED_POSTS
   async getUserFeeds(req, res) {
     try {
       const posts = await postHelpers.getUserFeeds(req.user._id);
-      // const currentUser = await userHelpers.getUserDetailsHelper(req.user._id)
-      // const userPosts = await userHelpers.getUserTimeline(req.user._id)
-      // const friendPosts = await userHelpers.getUserFriendsTimeline(currentUser);
-      // console.log(posts,"posts")
       res.status(200).json(posts);
     } catch (err) {
       res.status(500).json(err);
@@ -142,22 +124,27 @@ class UserController {
       res.status(500).json(err);
     }
   }
+  // update profile
+  async updateProfile(req, res) {
+    try {
+      console.log(req.body, req.user._id, "new profile");
+      if (req.body.userId === req.user._id) {
+        const updatedProfile = await userHelpers.updateProfileHelper(req.body);
+        res.status(200).json(updatedProfile);
+      } else {
+        res
+          .status(405)
+          .message("You don't have permissions to update this profile");
+      }
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  }
 
   // sample for testing db connection
   async sample(req, res) {
     try {
       console.log("reached sample");
-      const result = await userHelpers.getSample();
-      console.log(result, "result");
-      res.send("result");
-    } catch (err) {
-      console.log(err);
-    }
-  }
-  // protected routes
-  async protected(req, res) {
-    try {
-      console.log("reached protected");
       const result = await userHelpers.getSample();
       console.log(result, "result");
       res.send("result");

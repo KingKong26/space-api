@@ -8,11 +8,6 @@ module.exports = {
   // register - user onboarding
   registerUser: (userData) => {
     return new Promise(async (resolve, reject) => {
-      // const checkUser = await db
-      //   .getDb()
-      //   .collection(collections.USERS)
-      //   .findOne({ email: userData.email });
-      // if (checkUser) return reject({ message: "This email already exists" });
       try {
         userData.password = await bcrypt.hash(userData.password, saltRounds);
         userData.friendRequests = [];
@@ -104,7 +99,7 @@ module.exports = {
   toggleOnlineHelper: async (toggle, userId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        console.log(`toggle,userId`, toggle,userId)
+        console.log(`toggle,userId`, toggle, userId);
         const wait = await db
           .getDb()
           .collection(collections.USERS)
@@ -115,7 +110,7 @@ module.exports = {
             },
             { returnDocument: "after" }
           );
-          console.log(`wait`, wait)
+        console.log(`wait`, wait);
         resolve(wait);
       } catch (err) {
         reject(err);
@@ -282,7 +277,6 @@ module.exports = {
   // get user timeline
   getUserTimeline: (userId) => {
     return new Promise(async (resolve, reject) => {
-      console.log("userId in getUserTimeline", userId);
       try {
         const post = await db
           .getDb()
@@ -353,16 +347,7 @@ module.exports = {
             },
           ])
           .toArray();
-        // console.log(`post[0].userPosts`, post[0].userPosts[0].userId);
-        // const objPresent = post[0].userPosts.some(
-        //   (obj) => obj.userId?.toString() == userId
-        // );
-        // console.log(`objPresent`, objPresent);
-        // if (!objPresent) {
-        //   post[0].userPosts = [];
-        // }
         if (!post[0].userPosts[0]?._id) post[0].userPosts = [];
-        console.log(post, "post from getUserTimeline");
         resolve(post[0]);
       } catch (err) {
         console.log(`err.message`, err.message);
@@ -373,14 +358,12 @@ module.exports = {
 
   getUserPhotos: (userId) => {
     return new Promise(async (resolve, reject) => {
-      console.log(userId, "hrljkj");
       try {
         const post = await db
           .getDb()
           .collection(collections.POST)
           .find({ userId: ObjectId(userId) })
           .toArray();
-        console.log(post, "posts userphoto");
         resolve(post);
       } catch (err) {
         reject(err.message);
@@ -398,6 +381,41 @@ module.exports = {
           .toArray();
       })
     );
+  },
+
+  updateProfileHelper: (updateDetails) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const wait = await db
+          .getDb()
+          .collection(collections.USERS)
+          .findOneAndUpdate(
+            { _id: ObjectId(updateDetails.userId) },
+            {
+              $set: {
+                fullName: updateDetails.fullName,
+                phone: updateDetails.phone,
+                email: updateDetails.email,
+                age: updateDetails.age,
+                description: updateDetails.description,
+                education: updateDetails.education,
+                work: updateDetails.work,
+                from: updateDetails.from,
+                livesIn: updateDetails.livesIn,
+                livesInCountry: updateDetails.livesInCountry,
+                fromCountry: updateDetails.fromCountry,
+              },
+            },
+            {
+              returnDocument: "after",
+            }
+          );
+        resolve(wait.value);
+      } catch (err) {
+        console.log(`error`, err);
+        reject(err);
+      }
+    });
   },
   // sample helper
   getSample: async () => {

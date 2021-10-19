@@ -1,6 +1,4 @@
-const collection = require("../../config/collection"),
-  db = require("../../config/dbConnection"),
-  tokenService = require("../services/tokenServices"),
+const tokenService = require("../services/tokenServices"),
   userHelpers = require("../helpers/userHelpers");
 
 class AuthController {

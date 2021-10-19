@@ -13,12 +13,13 @@ const express = require("express"),
   compression = require("compression"),
   io = require("socket.io")(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: process.env.FRONT_END_URL,
     },
     pingTimeout: 180000,
     pingInterval: 25000,
   }),
-  socketService = require("./src/socket");
+ socketService = require("./src/socket").socket
+
 // Application level middlewares
 app.use(
   compression({
@@ -26,7 +27,11 @@ app.use(
     threshold: 100 * 1000,
   })
 );
-app.use(morgan());
+morgan.token("username", function (req, res) {
+  var username = req.user ? req.user._id : "Guest";
+  return username;
+});
+app.use(morgan(":username :date :method :url"));
 app.use(express.json()); //Used to parse JSON bodies
 app.use(express.urlencoded({ extended: true })); //Parse URL-encoded bodies,
 app.use(cors({ credentials: true, origin: process.env.FRONT_END_URL }));
@@ -37,11 +42,9 @@ app.use("/api/admin", adminRoutes);
 // io.eio.pingInterval = 5000;
 io.on("connection", (socket) => {
   console.log("a user is connected", socket.id);
-  let userId = socket.handshake.query.userId;
-  console.log(`io.on userId`, userId);
-  socketService(socket, io, userId);
-
   console.log("number of clients", io.engine.clientsCount);
+  let userId = socket.handshake.query.userId;
+  socketService(socket, io, userId);
 });
 
 server.listen(PORT, () => {
